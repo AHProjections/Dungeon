@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Hollow King</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:    #0a0806;
+  --stone:  #111009;
+  --parch:  #c8b485;
+  --parch2: #a8935d;
+  --amber:  #e8a030;
+  --ember:  #c05010;
+  --blood:  #8b1a1a;
+  --bone:   #d4c9a8;
+  --shadow: rgba(0,0,0,0.7);
+  --glow:   rgba(232,160,48,0.15);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: var(--ink); }
+
+/* ── LAYOUT ──────────────────────────────────────────────────────── */
+.game {
+  display: grid;
+  grid-template-columns: 260px 1fr 220px;
+  grid-template-rows: 52px 1fr 180px 72px;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+}
+
+/* ── STONE TEXTURE BACKGROUND ────────────────────────────────────── */
+.stone-bg {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(40,30,10,0.4) 0%, transparent 70%),
+    repeating-linear-gradient(
+      0deg,
+      transparent, transparent 39px,
+      rgba(255,255,255,0.012) 39px, rgba(255,255,255,0.012) 40px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent, transparent 39px,
+      rgba(255,255,255,0.012) 39px, rgba(255,255,255,0.012) 40px
+    );
+  background-color: #0a0806;
+}
+
+/* ── HEADER ──────────────────────────────────────────────────────── */
+.header {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  position: relative; z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(200,180,100,0.15);
+  background: linear-gradient(180deg, rgba(5,4,2,0.95) 0%, transparent 100%);
+}
+.game-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  color: var(--parch);
+  text-shadow: 0 0 20px rgba(232,160,48,0.5);
+}
+.game-title span { color: var(--amber); }
+.connection-area {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.key-input {
+  background: rgba(200,180,100,0.05);
+  border: 1px solid rgba(200,180,100,0.15);
+  color: var(--bone);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  width: 220px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.key-input:focus { border-color: rgba(232,160,48,0.4); }
+.key-input::placeholder { color: rgba(200,180,100,0.3); }
+.key-input:disabled { opacity: 0.4; }
+.begin-btn {
+  background: linear-gradient(135deg, rgba(139,26,26,0.5), rgba(80,10,10,0.4));
+  border: 1px solid rgba(139,26,26,0.6);
+  color: rgba(220,160,100,0.95);
+  border-radius: 4px;
+  padding: 6px 16px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.begin-btn:hover { background: linear-gradient(135deg, rgba(160,30,30,0.6), rgba(100,15,15,0.5)); border-color: rgba(180,50,50,0.8); }
+.begin-btn.connected { background: rgba(20,20,10,0.6); border-color: rgba(200,180,100,0.2); color: rgba(200,180,100,0.5); }
+.begin-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.conn-status {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  padding: 4px 10px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+}
+.conn-status.disconnected { color: rgba(200,180,100,0.3); border-color: rgba(200,180,100,0.1); }
+.conn-status.connecting   { color: var(--amber); border-color: rgba(232,160,48,0.3); animation: flicker 1.2s ease-in-out infinite; }
+.conn-status.connected    { color: #70c870; border-color: rgba(112,200,112,0.3); }
+.conn-status.error        { color: #c85050; border-color: rgba(200,80,80,0.3); }
+
+/* ── LEFT PANEL — STATS ──────────────────────────────────────────── */
+.panel-left {
+  grid-column: 1;
+  grid-row: 2;
+  position: relative; z-index: 5;
+  padding: 16px;
+  border-right: 1px solid rgba(200,180,100,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.stat-block {
+  position: relative;
+}
+.stat-label {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  color: rgba(200,180,100,0.4);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.hp-bar-wrap {
+  background: rgba(139,26,26,0.1);
+  border: 1px solid rgba(139,26,26,0.3);
+  border-radius: 2px;
+  height: 10px;
+  overflow: hidden;
+}
+.hp-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #6b1010, #c03030);
+  border-radius: 2px;
+  transition: width 0.6s ease;
+  width: 100%;
+  box-shadow: 0 0 8px rgba(192,48,48,0.5);
+}
+.hp-text {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: var(--bone);
+  margin-top: 5px;
+}
+
+.location-name {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 14px;
+  color: var(--amber);
+  line-height: 1.4;
+  text-shadow: 0 0 12px rgba(232,160,48,0.3);
+}
+
+.map-dots {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.map-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: rgba(200,180,100,0.25);
+  transition: color 0.4s;
+  position: relative;
+}
+.map-node.visited { color: rgba(200,180,100,0.6); }
+.map-node.current { color: var(--amber); }
+.map-node.current .node-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.map-node.visited .node-dot { background: rgba(200,180,100,0.4); }
+.node-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(200,180,100,0.15);
+  flex-shrink: 0;
+  transition: all 0.4s;
+}
+.map-line {
+  position: absolute;
+  left: 2.5px; top: 10px;
+  width: 1px; height: 4px;
+  background: rgba(200,180,100,0.15);
+}
+
+.inv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 120px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.inv-list::-webkit-scrollbar { display: none; }
+.inv-item {
+  font-family: 'IM Fell English', serif;
+  font-size: 11px;
+  color: rgba(200,180,100,0.55);
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(200,180,100,0.06);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.inv-item::before { content: '⚔'; font-size: 9px; opacity: 0.5; }
+.inv-item.key-item::before { content: '🗝'; font-size: 9px; }
+.inv-item.potion::before { content: '⚗'; font-size: 9px; }
+
+/* ── CENTER — SCENE ──────────────────────────────────────────────── */
+.scene-area {
+  grid-column: 2;
+  grid-row: 2;
+  position: relative; z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* SVG dungeon scene */
+.dungeon-art {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+
+/* Narrative box */
+.narrative-box {
+  position: relative;
+  z-index: 10;
+  width: 88%;
+  max-width: 520px;
+  background: rgba(5,4,2,0.82);
+  border: 1px solid rgba(200,180,100,0.18);
+  border-radius: 2px;
+  padding: 20px 24px;
+  backdrop-filter: blur(4px);
+  box-shadow:
+    0 0 40px rgba(0,0,0,0.7),
+    inset 0 1px 0 rgba(200,180,100,0.08),
+    0 0 0 1px rgba(0,0,0,0.5);
+}
+.narrative-box::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(200,180,100,0.06);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+/* Corner ornaments */
+.narrative-box::after {
+  content: '✦';
+  position: absolute;
+  top: 6px; right: 10px;
+  font-size: 8px;
+  color: rgba(200,180,100,0.25);
+  letter-spacing: 0;
+}
+
+.narrative-text {
+  font-family: 'IM Fell English', serif;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--bone);
+  min-height: 80px;
+  transition: opacity 0.3s;
+}
+.narrative-text.fading { opacity: 0.3; }
+.narrative-text em { color: var(--amber); font-style: italic; }
+
+.narrative-prompt {
+  margin-top: 12px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: rgba(200,180,100,0.25);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.prompt-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: rgba(232,160,48,0.4);
+  animation: pulse-dot 2.2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+/* ── RIGHT PANEL — LOG ────────────────────────────────────────────── */
+.panel-right {
+  grid-column: 3;
+  grid-row: 2;
+  position: relative; z-index: 5;
+  border-left: 1px solid rgba(200,180,100,0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.log-header {
+  padding: 12px 14px 8px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  color: rgba(200,180,100,0.3);
+  border-bottom: 1px solid rgba(200,180,100,0.07);
+  flex-shrink: 0;
+}
+.log-entries {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200,180,100,0.1) transparent;
+}
+.log-entry {
+  font-family: 'IM Fell English', serif;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(200,180,100,0.05);
+  animation: entry-in 0.3s ease;
+}
+.log-entry.user { color: rgba(200,220,255,0.55); }
+.log-entry.gm   { color: rgba(200,180,100,0.45); }
+.log-entry.sys  { color: rgba(140,200,140,0.45); font-style: italic; }
+.log-entry .tag {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  opacity: 0.5;
+  display: block;
+  margin-bottom: 2px;
+}
+@keyframes entry-in {
+  from { opacity: 0; transform: translateX(6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── BOTTOM — SCENE ART ROW ──────────────────────────────────────── */
+.scene-art-row {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  position: relative; z-index: 5;
+  border-top: 1px solid rgba(200,180,100,0.08);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/* ── CONTROLS ─────────────────────────────────────────────────────── */
+.controls {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  position: relative; z-index: 10;
+  border-top: 1px solid rgba(200,180,100,0.1);
+  background: linear-gradient(0deg, rgba(5,4,2,0.98) 0%, transparent 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 0 24px;
+}
+
+/* Orb */
+.orb-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.orb-wrap {
+  position: relative;
+  width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.orb-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(139,26,26,0.4);
+  opacity: 0;
+  transition: border-color 0.4s;
+}
+.orb-wrap.listening .orb-ring { border-color: rgba(200,80,80,0.5); }
+.orb-wrap.speaking .orb-ring  { border-color: rgba(232,160,48,0.5); }
+.orb-ring-1 { animation: none; }
+.orb-ring-2 { animation: none; }
+.orb-wrap.listening .orb-ring-1 { animation: orb-ripple 1.8s ease-out infinite; }
+.orb-wrap.listening .orb-ring-2 { animation: orb-ripple 1.8s ease-out 0.9s infinite; }
+.orb-wrap.speaking  .orb-ring-1 { animation: orb-ripple 2.2s ease-out infinite; }
+.orb-wrap.speaking  .orb-ring-2 { animation: orb-ripple 2.2s ease-out 1.1s infinite; }
+@keyframes orb-ripple {
+  0%   { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+.orb-core {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(180,60,60,0.8) 0%, rgba(80,10,10,0.9) 60%, rgba(20,5,5,1) 100%);
+  border: 1px solid rgba(139,26,26,0.5);
+  box-shadow: 0 0 12px rgba(139,26,26,0.4), inset 0 1px 0 rgba(255,150,150,0.15);
+  position: relative; z-index: 2;
+  animation: orb-breathe 3s ease-in-out infinite;
+  transition: all 0.4s;
+}
+.orb-wrap.listening .orb-core {
+  background: radial-gradient(circle at 35% 30%, rgba(220,80,80,0.9) 0%, rgba(140,20,20,0.9) 60%, rgba(30,5,5,1) 100%);
+  box-shadow: 0 0 20px rgba(192,48,48,0.7), inset 0 1px 0 rgba(255,150,150,0.2);
+  animation: orb-listen 1.4s ease-in-out infinite;
+}
+.orb-wrap.speaking .orb-core {
+  background: radial-gradient(circle at 35% 30%, rgba(240,180,60,0.9) 0%, rgba(160,80,10,0.9) 60%, rgba(30,15,0,1) 100%);
+  box-shadow: 0 0 20px rgba(232,160,48,0.6), inset 0 1px 0 rgba(255,220,100,0.2);
+  animation: orb-speak 1.8s ease-in-out infinite;
+  border-color: rgba(200,140,30,0.6);
+}
+@keyframes orb-breathe {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.04); }
+}
+@keyframes orb-listen {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.1); box-shadow: 0 0 28px rgba(220,60,60,0.8); }
+}
+@keyframes orb-speak {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.07); box-shadow: 0 0 28px rgba(232,160,48,0.7); }
+}
+
+.orb-label {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: rgba(200,180,100,0.3);
+  text-transform: uppercase;
+  transition: color 0.3s;
+  white-space: nowrap;
+}
+.orb-wrap.listening ~ .orb-label { color: rgba(200,80,80,0.7); }
+.orb-wrap.speaking  ~ .orb-label { color: rgba(232,160,48,0.7); }
+
+/* Control buttons */
+.ctrl-divider {
+  width: 1px; height: 32px;
+  background: rgba(200,180,100,0.1);
+}
+.hp-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.hp-ctrl-label {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: rgba(200,180,100,0.3);
+}
+.hp-ctrl-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.hp-btn {
+  background: rgba(139,26,26,0.15);
+  border: 1px solid rgba(139,26,26,0.3);
+  color: rgba(200,100,100,0.7);
+  width: 26px; height: 26px;
+  border-radius: 3px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.hp-btn:hover { background: rgba(139,26,26,0.3); color: rgba(220,120,120,0.9); }
+.hp-val {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  color: var(--bone);
+  width: 36px; text-align: center;
+}
+
+.inv-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.inv-add-label {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: rgba(200,180,100,0.3);
+}
+.inv-add-row {
+  display: flex;
+  gap: 4px;
+}
+.inv-input {
+  background: rgba(200,180,100,0.04);
+  border: 1px solid rgba(200,180,100,0.12);
+  color: var(--bone);
+  border-radius: 3px;
+  padding: 4px 8px;
+  font-family: 'IM Fell English', serif;
+  font-size: 11px;
+  width: 120px;
+  outline: none;
+}
+.inv-input::placeholder { color: rgba(200,180,100,0.2); }
+.inv-add-btn {
+  background: rgba(200,180,100,0.06);
+  border: 1px solid rgba(200,180,100,0.15);
+  color: rgba(200,180,100,0.6);
+  border-radius: 3px;
+  padding: 4px 10px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+.inv-add-btn:hover { background: rgba(200,180,100,0.12); }
+
+.room-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.room-ctrl-label {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: rgba(200,180,100,0.3);
+}
+.room-select {
+  background: rgba(200,180,100,0.04);
+  border: 1px solid rgba(200,180,100,0.12);
+  color: rgba(200,180,100,0.7);
+  border-radius: 3px;
+  padding: 5px 8px;
+  font-family: 'IM Fell English', serif;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+}
+.room-select option { background: #0a0806; }
+
+/* ── MIC LEVEL ───────────────────────────────────────────────────── */
+.mic-level {
+  width: 60px; height: 2px;
+  background: rgba(139,26,26,0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  position: absolute;
+  bottom: 2px;
+}
+.mic-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8b1a1a, #c03030);
+  width: 0%;
+  transition: width 0.08s;
+  border-radius: 2px;
+}
+
+/* ── CANDLES ─────────────────────────────────────────────────────── */
+.candle-wrap {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.candle-body {
+  width: 8px;
+  background: linear-gradient(180deg, #e8d080 0%, #c8a840 50%, #a07830 100%);
+  border-radius: 1px 1px 0 0;
+}
+.candle-flame {
+  width: 10px; height: 18px;
+  position: relative;
+  animation: flame-flicker var(--flicker-speed, 0.9s) ease-in-out infinite alternate;
+  transform-origin: bottom center;
+}
+.flame-inner {
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 5px; height: 12px;
+  background: radial-gradient(ellipse at 50% 80%, #fff8e0 0%, #f0c040 50%, #e08010 100%);
+  border-radius: 50% 50% 30% 30%;
+  filter: blur(1px);
+}
+.flame-outer {
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 10px; height: 18px;
+  background: radial-gradient(ellipse at 50% 75%, rgba(255,200,50,0.7) 0%, rgba(220,100,10,0.4) 55%, transparent 100%);
+  border-radius: 50% 50% 30% 30%;
+  filter: blur(2px);
+}
+.flame-glow {
+  position: absolute;
+  bottom: -10px; left: 50%;
+  transform: translateX(-50%);
+  width: 40px; height: 30px;
+  background: radial-gradient(ellipse, rgba(232,160,48,0.15) 0%, transparent 70%);
+  animation: glow-pulse var(--flicker-speed, 0.9s) ease-in-out infinite alternate;
+}
+@keyframes flame-flicker {
+  0%   { transform: scale(1,1) rotate(-1deg); }
+  33%  { transform: scale(0.95,1.05) rotate(1.5deg); }
+  66%  { transform: scale(1.05,0.95) rotate(-0.5deg); }
+  100% { transform: scale(0.98,1.03) rotate(2deg); }
+}
+@keyframes glow-pulse {
+  0%   { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+@keyframes flicker {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ── DUNGEON SVG ─────────────────────────────────────────────────── */
+.dungeon-svg {
+  width: 100%; height: 100%;
+  position: absolute; inset: 0;
+  transition: opacity 0.8s;
+}
+
+/* ── INTRO OVERLAY ───────────────────────────────────────────────── */
+.intro-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(5,4,2,0.97);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  transition: opacity 0.8s;
+}
+.intro-overlay.hidden { opacity: 0; pointer-events: none; }
+.intro-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(28px, 6vw, 52px);
+  color: var(--parch);
+  text-shadow: 0 0 40px rgba(232,160,48,0.4), 0 0 80px rgba(139,26,26,0.3);
+  letter-spacing: 0.1em;
+  text-align: center;
+  animation: title-in 1.5s ease forwards;
+  opacity: 0;
+}
+.intro-title span { color: var(--blood); }
+@keyframes title-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.intro-sub {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: rgba(200,180,100,0.5);
+  text-align: center;
+  max-width: 400px;
+  line-height: 1.8;
+  animation: title-in 1.5s 0.4s ease forwards;
+  opacity: 0;
+}
+.intro-instructions {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: rgba(200,180,100,0.3);
+  text-align: center;
+  line-height: 2;
+  animation: title-in 1.5s 0.8s ease forwards;
+  opacity: 0;
+}
+.intro-enter-btn {
+  background: linear-gradient(135deg, rgba(139,26,26,0.4), rgba(80,10,10,0.3));
+  border: 1px solid rgba(139,26,26,0.5);
+  color: var(--parch);
+  padding: 12px 36px;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  cursor: pointer;
+  transition: all 0.3s;
+  border-radius: 2px;
+  animation: title-in 1.5s 1.2s ease forwards;
+  opacity: 0;
+}
+.intro-enter-btn:hover {
+  background: linear-gradient(135deg, rgba(180,40,40,0.5), rgba(100,15,15,0.4));
+  border-color: rgba(180,50,50,0.7);
+  box-shadow: 0 0 20px rgba(139,26,26,0.3);
+}
+
+/* ── TOAST ───────────────────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 80px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(139,26,26,0.2);
+  border: 1px solid rgba(139,26,26,0.4);
+  color: rgba(220,140,100,0.9);
+  padding: 8px 20px;
+  border-radius: 3px;
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  z-index: 200;
+  display: none;
+  white-space: nowrap;
+  animation: entry-in 0.3s ease;
+}
+
+/* ── DEATH / VICTORY OVERLAY ─────────────────────────────────────── */
+.result-overlay {
+  position: fixed; inset: 0; z-index: 150;
+  background: rgba(5,4,2,0.95);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+.result-overlay.show { display: flex; }
+.result-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 40px;
+  color: var(--blood);
+  text-shadow: 0 0 30px rgba(139,26,26,0.5);
+  letter-spacing: 0.15em;
+}
+.result-title.victory { color: var(--amber); text-shadow: 0 0 30px rgba(232,160,48,0.5); }
+.result-sub { font-family: 'IM Fell English', serif; font-size: 16px; color: rgba(200,180,100,0.5); font-style: italic; }
+.result-restart {
+  margin-top: 10px;
+  background: rgba(139,26,26,0.2);
+  border: 1px solid rgba(139,26,26,0.4);
+  color: var(--parch);
+  padding: 10px 30px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.result-restart:hover { background: rgba(139,26,26,0.4); }
+
+canvas#vizCanvas {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  width: 46px; height: 46px;
+}
+</style>
+</head>
+<body>
+
+<!-- FILE:// WARNING BANNER -->
+<div id="fileWarn" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(5,4,2,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:30px;text-align:center;">
+  <div style="font-family:'Cinzel Decorative',serif;font-size:22px;color:#c8b485;text-shadow:0 0 20px rgba(232,160,48,0.4);">One Small Step Required</div>
+  <div style="font-family:'IM Fell English',serif;font-style:italic;font-size:15px;color:rgba(200,180,100,0.6);max-width:480px;line-height:1.8;">
+    Your browser blocks WebSocket connections from <code style="font-style:normal;color:#e8a030;background:rgba(232,160,48,0.08);padding:2px 6px;border-radius:3px;">file://</code> paths.<br>
+    Serve the file over localhost with one command:
+  </div>
+  <div style="background:rgba(0,0,0,0.5);border:1px solid rgba(200,180,100,0.2);border-radius:6px;padding:16px 24px;font-family:'Courier New',monospace;font-size:13px;color:#a0d8a0;line-height:2.2;max-width:540px;text-align:left;">
+    <span style="color:rgba(200,180,100,0.4);font-size:11px;"># Python (most Macs/Linux have this):</span><br>
+    python3 -m http.server 8080<br><br>
+    <span style="color:rgba(200,180,100,0.4);font-size:11px;"># Node.js:</span><br>
+    npx serve .<br><br>
+    <span style="color:rgba(200,180,100,0.4);font-size:11px;"># VS Code: install "Live Server" extension → right-click → Open with Live Server</span>
+  </div>
+  <div style="font-family:'IM Fell English',serif;font-size:14px;color:rgba(200,180,100,0.5);">
+    Then open <span style="color:#e8a030;">http://localhost:8080/hollow-king.html</span> in your browser.
+  </div>
+  <button onclick="document.getElementById('fileWarn').style.display='none'" style="margin-top:8px;background:rgba(139,26,26,0.3);border:1px solid rgba(139,26,26,0.5);color:rgba(220,160,100,0.9);padding:10px 28px;font-family:'Cinzel',serif;font-size:11px;letter-spacing:0.2em;cursor:pointer;border-radius:3px;">I'M ALREADY ON LOCALHOST →</button>
+</div>
+
+<!-- INTRO OVERLAY -->
+<div class="intro-overlay" id="introOverlay">
+  <div class="intro-title">The <span>Hollow</span> King</div>
+  <div class="intro-sub">A voice-driven dungeon of whispered commands and spoken fate.<br>Speak your will. The dark listens.</div>
+  <div class="intro-instructions">
+    POWERED BY GEMINI LIVE API<br>
+    SPEAK YOUR ACTIONS — THE GM RESPONDS IN VOICE<br>
+    YOUR CHOICES SHAPE THE KEEP
+  </div>
+  <button class="intro-enter-btn" onclick="enterGame()">ENTER THE KEEP</button>
+</div>
+
+<!-- RESULT OVERLAY -->
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-title" id="resultTitle">YOU HAVE FALLEN</div>
+  <div class="result-sub" id="resultSub">The Hollow Keep claims another soul.</div>
+  <button class="result-restart" onclick="restartGame()">RISE AGAIN</button>
+</div>
+
+<div class="stone-bg"></div>
+<div class="game">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="game-title">The <span>Hollow</span> King</div>
+    <div class="connection-area">
+      <input type="password" class="key-input" id="apiKey" placeholder="Google AI Studio API Key →">
+      <select id="voiceSelect" style="background:rgba(200,180,100,0.05);border:1px solid rgba(200,180,100,0.15);color:rgba(200,180,100,0.7);border-radius:4px;padding:5px 8px;font-family:'IM Fell English',serif;font-size:12px;cursor:pointer;outline:none;">
+        <option value="Charon">Charon (deep)</option>
+        <option value="Fenrir">Fenrir (gravelly)</option>
+        <option value="Kore">Kore (female)</option>
+        <option value="Aoede">Aoede (female)</option>
+        <option value="Puck">Puck (light)</option>
+        <option value="Orus">Orus (authoritative)</option>
+        <option value="Schedar">Schedar (warm)</option>
+      </select>
+      <span class="conn-status disconnected" id="connStatus">DORMANT</span>
+      <button class="begin-btn" id="beginBtn" onclick="toggleConnect()">Begin</button>
+    </div>
+  </header>
+
+  <!-- LEFT: STATS -->
+  <aside class="panel-left">
+    <div class="stat-block">
+      <div class="stat-label">Vitality</div>
+      <div class="hp-bar-wrap"><div class="hp-bar" id="hpBar"></div></div>
+      <div class="hp-text"><span id="hpCurrent">20</span> / <span id="hpMax">20</span></div>
+    </div>
+
+    <div class="stat-block">
+      <div class="stat-label">Location</div>
+      <div class="location-name" id="locationName">The Entrance Hall</div>
+    </div>
+
+    <div class="stat-block">
+      <div class="stat-label">The Keep</div>
+      <div class="map-dots" id="mapDots">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+    <div class="stat-block" style="flex:1; overflow:hidden; display:flex; flex-direction:column;">
+      <div class="stat-label">Inventory</div>
+      <div class="inv-list" id="invList">
+        <div class="inv-item">Rusty Dagger</div>
+        <div class="inv-item">Torch</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER: SCENE -->
+  <main class="scene-area">
+    <!-- Dungeon SVG art -->
+    <div class="dungeon-art" id="dungeonArt">
+      <svg class="dungeon-svg" viewBox="0 0 600 340" xmlns="http://www.w3.org/2000/svg" id="scenesvg">
+        <!-- Stone floor -->
+        <rect width="600" height="340" fill="none"/>
+        <!-- Floor tiles -->
+        <g opacity="0.35" fill="none" stroke="rgba(200,180,100,0.15)" stroke-width="0.5">
+          <line x1="0" y1="280" x2="600" y2="280"/>
+          <line x1="0" y1="310" x2="600" y2="310"/>
+          <line x1="0" y1="260" x2="600" y2="260"/>
+          <!-- Perspective lines from center -->
+          <line x1="300" y1="180" x2="0" y2="340"/>
+          <line x1="300" y1="180" x2="100" y2="340"/>
+          <line x1="300" y1="180" x2="200" y2="340"/>
+          <line x1="300" y1="180" x2="400" y2="340"/>
+          <line x1="300" y1="180" x2="500" y2="340"/>
+          <line x1="300" y1="180" x2="600" y2="340"/>
+        </g>
+        <!-- Left wall -->
+        <polygon points="0,0 160,0 160,100 200,180 160,340 0,340" fill="rgba(15,12,8,0.6)" stroke="rgba(200,180,100,0.08)" stroke-width="0.5"/>
+        <!-- Right wall -->
+        <polygon points="600,0 440,0 440,100 400,180 440,340 600,340" fill="rgba(15,12,8,0.6)" stroke="rgba(200,180,100,0.08)" stroke-width="0.5"/>
+        <!-- Ceiling -->
+        <polygon points="0,0 600,0 600,80 440,100 160,100 0,80" fill="rgba(8,7,5,0.7)" stroke="rgba(200,180,100,0.08)" stroke-width="0.5"/>
+        <!-- Arch -->
+        <path d="M 200,100 Q 200,30 300,30 Q 400,30 400,100 L 400,280 L 200,280 Z"
+              fill="rgba(5,4,2,0.85)" stroke="rgba(200,180,100,0.2)" stroke-width="1.5"/>
+        <!-- Arch detail inner -->
+        <path d="M 215,110 Q 215,50 300,50 Q 385,50 385,110 L 385,270 L 215,270 Z"
+              fill="none" stroke="rgba(200,180,100,0.1)" stroke-width="0.8"/>
+        <!-- Door/passage at end -->
+        <path d="M 255,140 Q 255,95 300,95 Q 345,95 345,140 L 345,280 L 255,280 Z"
+              fill="rgba(2,1,1,0.98)" stroke="rgba(200,180,100,0.15)" stroke-width="1"/>
+        <!-- Passage glow -->
+        <radialGradient id="passGlow" cx="50%" cy="60%" r="50%">
+          <stop offset="0%" stop-color="rgba(232,160,48,0.06)"/>
+          <stop offset="100%" stop-color="rgba(232,160,48,0)"/>
+        </radialGradient>
+        <path d="M 255,140 Q 255,95 300,95 Q 345,95 345,140 L 345,280 L 255,280 Z" fill="url(#passGlow)"/>
+        <!-- Wall stones left -->
+        <g fill="none" stroke="rgba(200,180,100,0.07)" stroke-width="0.5">
+          <rect x="20" y="120" width="55" height="30" rx="1"/>
+          <rect x="80" y="120" width="45" height="30" rx="1"/>
+          <rect x="10" y="155" width="40" height="28" rx="1"/>
+          <rect x="55" y="155" width="55" height="28" rx="1"/>
+          <rect x="20" y="188" width="55" height="30" rx="1"/>
+          <rect x="80" y="188" width="45" height="30" rx="1"/>
+        </g>
+        <!-- Wall stones right -->
+        <g fill="none" stroke="rgba(200,180,100,0.07)" stroke-width="0.5">
+          <rect x="470" y="120" width="55" height="30" rx="1"/>
+          <rect x="530" y="120" width="45" height="30" rx="1"/>
+          <rect x="475" y="155" width="40" height="28" rx="1"/>
+          <rect x="520" y="155" width="55" height="28" rx="1"/>
+          <rect x="470" y="188" width="55" height="30" rx="1"/>
+          <rect x="530" y="188" width="45" height="30" rx="1"/>
+        </g>
+        <!-- Cobwebs top left -->
+        <g opacity="0.2" stroke="rgba(200,180,100,0.4)" stroke-width="0.5" fill="none">
+          <line x1="0" y1="0" x2="60" y2="60"/>
+          <line x1="30" y1="0" x2="0" y2="50"/>
+          <ellipse cx="20" cy="30" rx="18" ry="12"/>
+        </g>
+        <!-- Cobwebs top right -->
+        <g opacity="0.2" stroke="rgba(200,180,100,0.4)" stroke-width="0.5" fill="none">
+          <line x1="600" y1="0" x2="540" y2="60"/>
+          <line x1="570" y1="0" x2="600" y2="50"/>
+          <ellipse cx="580" cy="30" rx="18" ry="12"/>
+        </g>
+        <!-- Ambient fog at floor -->
+        <radialGradient id="fogGrad" cx="50%" cy="100%" r="60%">
+          <stop offset="0%" stop-color="rgba(232,160,48,0.03)"/>
+          <stop offset="100%" stop-color="rgba(232,160,48,0)"/>
+        </radialGradient>
+        <rect x="0" y="260" width="600" height="80" fill="url(#fogGrad)"/>
+      </svg>
+    </div>
+
+    <!-- Narrative box -->
+    <div class="narrative-box">
+      <div class="narrative-text" id="narrativeText">
+        Enter the keep. Speak to the Game Master.
+      </div>
+      <div class="narrative-prompt">
+        <div class="prompt-dot"></div>
+        <span id="narrativeHint">Awaiting connection...</span>
+      </div>
+    </div>
+
+    <!-- Candles left -->
+    <div class="candle-wrap" style="left: 80px; bottom: 0;" id="candleL">
+      <div class="candle-flame" style="--flicker-speed:0.85s">
+        <div class="flame-outer"></div><div class="flame-inner"></div><div class="flame-glow"></div>
+      </div>
+      <div class="candle-body" style="height:40px"></div>
+    </div>
+    <!-- Candles right -->
+    <div class="candle-wrap" style="right: 80px; bottom: 0;" id="candleR">
+      <div class="candle-flame" style="--flicker-speed:1.1s">
+        <div class="flame-outer"></div><div class="flame-inner"></div><div class="flame-glow"></div>
+      </div>
+      <div class="candle-body" style="height:52px"></div>
+    </div>
+  </main>
+
+  <!-- RIGHT: LOG -->
+  <aside class="panel-right">
+    <div class="log-header">Chronicle</div>
+    <div class="log-entries" id="logEntries"></div>
+  </aside>
+
+  <!-- BOTTOM: SCENE ART ROW (extra candles + silhouette) -->
+  <div class="scene-art-row" id="sceneArtRow">
+    <svg viewBox="0 0 700 120" width="100%" height="120" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax slice" style="position:absolute;bottom:0;width:100%;opacity:0.5">
+      <!-- Silhouetted floor objects -->
+      <rect x="0" y="60" width="700" height="60" fill="#060504"/>
+      <!-- Rubble/barrels silhouette -->
+      <ellipse cx="80" cy="64" rx="30" ry="12" fill="#060504"/>
+      <rect x="60" y="42" width="40" height="25" rx="3" fill="#060504"/>
+      <rect x="68" y="38" width="24" height="8" rx="2" fill="#060504"/>
+      <!-- Barrel right -->
+      <ellipse cx="620" cy="64" rx="25" ry="10" fill="#060504"/>
+      <rect x="600" y="44" width="40" height="23" rx="3" fill="#060504"/>
+      <rect x="608" y="40" width="24" height="7" rx="2" fill="#060504"/>
+      <!-- Skull on floor left -->
+      <ellipse cx="160" cy="63" rx="10" ry="9" fill="#060504"/>
+      <ellipse cx="160" cy="68" rx="6" ry="5" fill="#060504"/>
+      <!-- Broken column right -->
+      <rect x="530" y="20" width="18" height="48" fill="#060504"/>
+      <rect x="526" y="16" width="26" height="8" fill="#060504"/>
+      <rect x="526" y="64" width="26" height="4" fill="#060504"/>
+    </svg>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+
+    <!-- HP tracker -->
+    <div class="hp-controls">
+      <div class="hp-ctrl-label">HP</div>
+      <div class="hp-ctrl-row">
+        <button class="hp-btn" onclick="changeHP(-1)">−</button>
+        <span class="hp-val" id="hpValCtrl">20</span>
+        <button class="hp-btn" onclick="changeHP(1)">+</button>
+      </div>
+    </div>
+
+    <div class="ctrl-divider"></div>
+
+    <!-- Room tracker -->
+    <div class="room-controls">
+      <div class="room-ctrl-label">Room</div>
+      <select class="room-select" id="roomSelect" onchange="updateRoom()">
+        <option>Entrance Hall</option>
+        <option>Guardroom</option>
+        <option>Chapel</option>
+        <option>Catacombs</option>
+        <option>Throne Room</option>
+      </select>
+    </div>
+
+    <div class="ctrl-divider"></div>
+
+    <!-- Voice orb -->
+    <div class="orb-container">
+      <div class="orb-wrap idle" id="orbWrap" onclick="orbClick()">
+        <canvas id="vizCanvas" width="46" height="46"></canvas>
+        <div class="orb-ring orb-ring-1"></div>
+        <div class="orb-ring orb-ring-2"></div>
+        <div class="orb-core"></div>
+      </div>
+      <div class="orb-label" id="orbLabel">speak</div>
+      <div class="mic-level"><div class="mic-fill" id="micFill"></div></div>
+    </div>
+
+    <div class="ctrl-divider"></div>
+
+    <!-- Inventory add -->
+    <div class="inv-add">
+      <div class="inv-add-label">Add Item</div>
+      <div class="inv-add-row">
+        <input type="text" class="inv-input" id="invInput" placeholder="e.g. iron key..." onkeydown="e=>e.key==='Enter'&&addInvItem()">
+        <button class="inv-add-btn" onclick="addInvItem()">ADD</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- DEBUG PANEL — toggle with D key -->
+<div id="debugPanel" style="
+  display:none; position:fixed; bottom:80px; right:12px; z-index:300;
+  width:360px; max-height:220px; overflow-y:auto;
+  background:rgba(0,0,0,0.92); border:1px solid rgba(0,223,100,0.25);
+  border-radius:4px; padding:10px 12px; font-family:'Courier New',monospace;
+  font-size:10px; color:rgba(0,223,100,0.8); line-height:1.7;
+  scrollbar-width:thin; scrollbar-color: rgba(0,200,80,0.2) transparent;
+"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════════════
+const ROOMS = ['Entrance Hall','Guardroom','Chapel','Catacombs','Throne Room'];
+let gameState = {
+  hp: 20, maxHp: 20,
+  room: 'Entrance Hall',
+  inventory: ['Rusty Dagger','Torch'],
+  turn: 0,
+  roomsVisited: new Set(['Entrance Hall'])
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// AUDIO STATE
+// ═══════════════════════════════════════════════════════════════════
+let voiceState = 'idle'; // idle | connecting | ready | listening | speaking | error
+let ws = null;
+let audioCtx = null;
+let micStream = null;
+let processor = null;
+let analyser = null;
+let analyserData = null;
+let nextPlayTime = 0;
+let rafId = null;
+let modelBuf = '', userBuf = '';
+
+// ═══════════════════════════════════════════════════════════════════
+// SYSTEM PROMPT
+// ═══════════════════════════════════════════════════════════════════
+function buildSystemPrompt() {
+  return `You are the Game Master of "The Hollow King," a gothic dungeon crawler played entirely by voice.
+
+WORLD: The Hollow Keep — a cursed fortress where the Hollow King, an undead tyrant, reigns from the Throne Room. Five areas connect linearly: Entrance Hall → Guardroom → Chapel → Catacombs → Throne Room.
+
+CURRENT STATE:
+- Player HP: ${gameState.hp}/${gameState.maxHp}
+- Location: ${gameState.room}
+- Inventory: ${gameState.inventory.join(', ')}
+- Turn: ${gameState.turn}
+
+GAME RULES:
+- Mentally roll a d20 for risky actions. 1-5: bad failure (lose 2HP if dangerous). 6-10: partial fail. 11-15: success. 16-20: critical success with bonus.
+- Enemies attack back. Describe their damage. Player starts with 20HP.
+- Players can find items, secret passages, or lore by exploring.
+- Death at 0 HP. Victory by defeating the Hollow King.
+
+NARRATION STYLE (CRITICAL):
+- EXACTLY 2-3 short, atmospheric sentences per response.
+- Terse, visceral, slightly ominous. Like Cormac McCarthy in a dungeon.
+- End each response with ONE clear action or choice the player can take.
+- When HP changes, state the new HP clearly: "You have X health remaining."
+- Never break character. Never mention you're an AI or game master directly.
+- Immersive present tense.
+
+START: Describe the Entrance Hall to open the game. Give the first choice.`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function setVoiceState(s) {
+  voiceState = s;
+  const orb = document.getElementById('orbWrap');
+  const lbl = document.getElementById('orbLabel');
+  orb.className = 'orb-wrap ' + s;
+  const labels = { idle:'speak', connecting:'wait...', ready:'speak', listening:'listening', speaking:'speaking', error:'error' };
+  lbl.textContent = labels[s] || s;
+}
+
+function setConnStatus(s, text) {
+  const el = document.getElementById('connStatus');
+  el.className = 'conn-status ' + s;
+  el.textContent = text;
+}
+
+function showToast(msg, dur=4000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(()=>{ t.style.display = 'none'; }, dur);
+}
+
+function updateNarrative(text) {
+  const el = document.getElementById('narrativeText');
+  el.classList.add('fading');
+  setTimeout(()=>{
+    el.innerHTML = text.replace(/\*([^*]+)\*/g,'<em>$1</em>');
+    el.classList.remove('fading');
+  }, 250);
+  document.getElementById('narrativeHint').textContent = 'Speak your action...';
+}
+
+function addLog(role, text) {
+  if (!text.trim()) return;
+  const c = document.getElementById('logEntries');
+  const d = document.createElement('div');
+  d.className = 'log-entry ' + role;
+  const tags = { user:'YOU', gm:'GM', sys:'—' };
+  d.innerHTML = `<span class="tag">${tags[role]||role}</span>${escHtml(text.slice(0,120))+(text.length>120?'…':'')}`;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+}
+
+function escHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// HP
+function changeHP(delta) {
+  gameState.hp = Math.max(0, Math.min(gameState.maxHp, gameState.hp + delta));
+  refreshHP();
+  if (gameState.hp === 0) showDeath();
+}
+
+function refreshHP() {
+  document.getElementById('hpCurrent').textContent = gameState.hp;
+  document.getElementById('hpMax').textContent = gameState.maxHp;
+  document.getElementById('hpValCtrl').textContent = gameState.hp;
+  const pct = (gameState.hp / gameState.maxHp) * 100;
+  const bar = document.getElementById('hpBar');
+  bar.style.width = pct + '%';
+  if (pct > 60) bar.style.background = 'linear-gradient(90deg, #6b1010, #c03030)';
+  else if (pct > 30) bar.style.background = 'linear-gradient(90deg, #8b2010, #d04020)';
+  else bar.style.background = 'linear-gradient(90deg, #a01010, #ff3030)';
+}
+
+// Room
+function updateRoom() {
+  const sel = document.getElementById('roomSelect');
+  gameState.room = sel.value;
+  gameState.roomsVisited.add(sel.value);
+  document.getElementById('locationName').textContent = gameState.room;
+  refreshMap();
+  updateSceneArt();
+  if (gameState.room === 'Throne Room') setTimeout(()=>showVictory(), 3000);
+}
+
+function refreshMap() {
+  const c = document.getElementById('mapDots');
+  c.innerHTML = '';
+  ROOMS.forEach((r, i) => {
+    const d = document.createElement('div');
+    const isCurrent = r === gameState.room;
+    const isVisited = gameState.roomsVisited.has(r);
+    d.className = 'map-node' + (isCurrent?' current': isVisited?' visited':'');
+    d.innerHTML = `<div class="node-dot"></div>${r}`;
+    if (i < ROOMS.length-1) {
+      const line = document.createElement('div');
+      line.className = 'map-line';
+      d.appendChild(line);
+    }
+    c.appendChild(d);
+  });
+}
+
+// Inventory
+function addInvItem() {
+  const inp = document.getElementById('invInput');
+  const val = inp.value.trim();
+  if (!val) return;
+  gameState.inventory.push(val);
+  inp.value = '';
+  refreshInventory();
+}
+
+function refreshInventory() {
+  const c = document.getElementById('invList');
+  c.innerHTML = '';
+  gameState.inventory.forEach(item => {
+    const d = document.createElement('div');
+    const lower = item.toLowerCase();
+    const isKey = lower.includes('key') || lower.includes('scroll') || lower.includes('amulet');
+    const isPot = lower.includes('potion') || lower.includes('vial') || lower.includes('flask');
+    d.className = 'inv-item' + (isKey?' key-item': isPot?' potion':'');
+    d.textContent = item;
+    c.appendChild(d);
+  });
+}
+
+// Scene art based on room
+function updateSceneArt() {
+  const svg = document.getElementById('scenesvg');
+  const themes = {
+    'Entrance Hall': { archColor: 'rgba(200,180,100,0.2)', passColor: 'rgba(2,1,1,0.98)', fogColor: 'rgba(232,160,48,0.03)' },
+    'Guardroom':    { archColor: 'rgba(180,60,60,0.2)',   passColor: 'rgba(3,1,1,0.98)', fogColor: 'rgba(192,48,48,0.04)' },
+    'Chapel':       { archColor: 'rgba(100,100,200,0.2)', passColor: 'rgba(1,1,5,0.98)', fogColor: 'rgba(100,100,200,0.03)' },
+    'Catacombs':    { archColor: 'rgba(100,150,100,0.15)',passColor: 'rgba(1,3,1,0.98)', fogColor: 'rgba(60,100,60,0.04)' },
+    'Throne Room':  { archColor: 'rgba(200,160,30,0.3)',  passColor: 'rgba(5,3,0,0.95)', fogColor: 'rgba(200,140,30,0.08)' },
+  };
+  // Just dim/brighten based on depth
+  const idx = ROOMS.indexOf(gameState.room);
+  const opacity = Math.max(0.3, 0.7 - idx * 0.08);
+  svg.style.opacity = opacity;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// WEBSOCKET
+// ═══════════════════════════════════════════════════════════════════
+function toggleConnect() {
+  if (voiceState === 'idle' || voiceState === 'error') startConnect();
+  else disconnect();
+}
+
+function startConnect() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) { showToast('Enter your Google AI Studio API key first.'); return; }
+
+  setVoiceState('connecting');
+  setConnStatus('connecting','AWAKENING');
+  document.getElementById('beginBtn').disabled = true;
+  document.getElementById('apiKey').disabled = true;
+  document.getElementById('voiceSelect').disabled = true;
+
+  const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${key}`;
+  dbg('Opening WebSocket...');
+  try {
+    ws = new WebSocket(url);
+    ws.onopen    = onWsOpen;
+    ws.onmessage = onWsMessage;
+    ws.onerror   = onWsError;
+    ws.onclose   = onWsClose;
+  } catch(e) {
+    dbg('WS constructor threw: ' + e.message);
+    if (e.message && (e.message.toLowerCase().includes('insecure') || e.message.toLowerCase().includes('secure'))) {
+      document.getElementById('fileWarn').style.display = 'flex';
+    } else {
+      showToast('Connection failed: '+e.message);
+    }
+    setVoiceState('error');
+    setConnStatus('error','FAILED');
+    document.getElementById('beginBtn').disabled = false;
+    document.getElementById('apiKey').disabled = false;
+  }
+}
+
+function disconnect() {
+  if (ws) { ws.close(); ws = null; }
+  stopAudio();
+  setVoiceState('idle');
+  setConnStatus('disconnected','DORMANT');
+  document.getElementById('beginBtn').textContent = 'Begin';
+  document.getElementById('beginBtn').classList.remove('connected');
+  document.getElementById('beginBtn').disabled = false;
+  document.getElementById('apiKey').disabled = false;
+  document.getElementById('voiceSelect').disabled = false;
+}
+
+function onWsOpen() {
+  dbg('WS open — sending setup');
+  const setup = {
+    setup: {
+      model: 'models/gemini-3.1-flash-live-preview',
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: document.getElementById('voiceSelect').value } } }
+      },
+      systemInstruction: { parts: [{ text: buildSystemPrompt() }] }
+    }
+  };
+  ws.send(JSON.stringify(setup));
+  dbg('Setup sent — waiting for setupComplete...');
+}
+
+async function onWsMessage(event) {
+  let text = (event.data instanceof Blob) ? await event.data.text() : event.data;
+  let msg; try { msg = JSON.parse(text); } catch(e) { dbg('JSON parse error: '+text.slice(0,80)); return; }
+
+  dbg('MSG keys: ' + Object.keys(msg).join(', '));
+
+  // Server errors
+  if (msg.error) {
+    dbg('SERVER ERROR: ' + JSON.stringify(msg.error));
+    showToast('Gemini error: ' + (msg.error.message || JSON.stringify(msg.error)));
+    return;
+  }
+
+  if ('setupComplete' in msg) {
+    dbg('setupComplete received');
+    try {
+      await startAudioCapture();
+      dbg('Microphone captured OK');
+      setVoiceState('ready');
+      setConnStatus('connected','CONNECTED');
+      document.getElementById('beginBtn').textContent = 'End';
+      document.getElementById('beginBtn').classList.add('connected');
+      document.getElementById('beginBtn').disabled = false;
+      document.getElementById('narrativeHint').textContent = 'The GM speaks...';
+      addLog('sys','The Hollow Keep awaits. Speak to the GM.');
+    } catch(e) {
+      dbg('Mic error: ' + e.message);
+      showToast('Mic access denied — allow microphone and try again.');
+      disconnect();
+    }
+    return;
+  }
+
+  if (msg.serverContent) {
+    const sc = msg.serverContent;
+    if (sc.modelTurn?.parts) {
+      if (voiceState !== 'speaking') setVoiceState('speaking');
+      for (const p of sc.modelTurn.parts) {
+        if (p.inlineData?.data) scheduleAudioChunk(p.inlineData.data);
+        if (p.text) modelBuf += p.text;
+      }
+    }
+    if (sc.turnComplete) {
+      if (modelBuf) {
+        updateNarrative(modelBuf);
+        addLog('gm', modelBuf);
+        parseGMResponse(modelBuf);
+        gameState.turn++;
+        modelBuf = '';
+      }
+      if (userBuf) { addLog('user', userBuf); userBuf = ''; }
+      const checkDone = () => {
+        if (audioCtx && nextPlayTime > audioCtx.currentTime + 0.05) setTimeout(checkDone, 200);
+        else if (voiceState === 'speaking') setVoiceState('ready');
+      };
+      setTimeout(checkDone, 300);
+    }
+    if (sc.interrupted) {
+      nextPlayTime = audioCtx ? audioCtx.currentTime : 0;
+      if (voiceState === 'speaking') setVoiceState('ready');
+    }
+  }
+}
+
+// Parse GM response for game state changes
+function parseGMResponse(text) {
+  const lower = text.toLowerCase();
+
+  // HP detection: "you have X health" or "X health remaining" or "X hp"
+  const hpMatch = text.match(/(\d+)\s*(?:health|hp|hit points?)(?:\s*remaining)?/i)
+    || text.match(/(?:health|hp|vitality)(?:\s*(?:is|:))?\s*(\d+)/i);
+  if (hpMatch) {
+    const newHp = parseInt(hpMatch[1]);
+    if (newHp >= 0 && newHp <= gameState.maxHp) {
+      gameState.hp = newHp;
+      refreshHP();
+      if (gameState.hp === 0) setTimeout(showDeath, 1500);
+    }
+  }
+
+  // Room detection
+  ROOMS.forEach(room => {
+    if (lower.includes(room.toLowerCase())) {
+      // Only update if it seems the player entered this room
+      if (lower.includes('enter') || lower.includes('arrive') || lower.includes('step into') || lower.includes('you are in') || lower.includes('you stand in')) {
+        gameState.room = room;
+        gameState.roomsVisited.add(room);
+        document.getElementById('locationName').textContent = room;
+        document.getElementById('roomSelect').value = room;
+        refreshMap();
+        updateSceneArt();
+        if (room === 'Throne Room' && (lower.includes('hollow king') && (lower.includes('defeat') || lower.includes('slain') || lower.includes('fallen') || lower.includes('dead')))) {
+          setTimeout(showVictory, 2000);
+        }
+      }
+    }
+  });
+}
+
+function onWsError(e) {
+  dbg('WS ERROR fired');
+  showToast('WebSocket error — see debug panel (D key)');
+  stopAudio();
+  setVoiceState('error');
+  setConnStatus('error','ERROR');
+  document.getElementById('beginBtn').disabled = false;
+  document.getElementById('apiKey').disabled = false;
+  document.getElementById('voiceSelect').disabled = false;
+}
+function onWsClose(e) {
+  dbg(`WS CLOSED  code=${e.code}  reason="${e.reason||'(none)'}"  clean=${e.wasClean}`);
+  const hint =
+    e.code === 1008 ? 'Bad API key or policy violation.' :
+    e.code === 4000 ? 'Bad request — check setup message.' :
+    e.code === 4001 ? 'Auth failed — invalid API key.' :
+    e.code === 4003 ? 'Quota exceeded or API not enabled.' :
+    e.reason ? e.reason :
+    `Code ${e.code}`;
+  if (e.code !== 1000) showToast(`Disconnected: ${hint}`);
+  stopAudio();
+  if (voiceState !== 'error') {
+    setVoiceState('idle');
+    setConnStatus('disconnected','DORMANT');
+    document.getElementById('beginBtn').textContent = 'Begin';
+    document.getElementById('beginBtn').classList.remove('connected');
+    document.getElementById('beginBtn').disabled = false;
+    document.getElementById('apiKey').disabled = false;
+    document.getElementById('voiceSelect').disabled = false;
+  }
+}
+
+// ── DEBUG PANEL ─────────────────────────────────────────────────────
+function dbg(msg) {
+  console.log('[HollowKing]', msg);
+  const p = document.getElementById('debugPanel');
+  if (!p) return;
+  const line = document.createElement('div');
+  line.textContent = new Date().toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'}) + '  ' + msg;
+  p.appendChild(line);
+  p.scrollTop = p.scrollHeight;
+  while (p.children.length > 40) p.removeChild(p.firstChild);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AUDIO CAPTURE + PLAYBACK
+// ═══════════════════════════════════════════════════════════════════
+async function startAudioCapture() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  micStream = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true, channelCount:1 }
+  });
+  const src = audioCtx.createMediaStreamSource(micStream);
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 64;
+  analyser.smoothingTimeConstant = 0.75;
+  analyserData = new Uint8Array(analyser.frequencyBinCount);
+  src.connect(analyser);
+
+  const buf = 2048;
+  processor = audioCtx.createScriptProcessor(buf, 1, 1);
+  src.connect(processor);
+  const sil = audioCtx.createGain(); sil.gain.value = 0;
+  processor.connect(sil); sil.connect(audioCtx.destination);
+
+  processor.onaudioprocess = e => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const raw = e.inputBuffer.getChannelData(0);
+    const pcm = downsample(raw, audioCtx.sampleRate, 16000);
+    ws.send(JSON.stringify({ realtimeInput: { audio: { data: int16ToB64(floatToInt16(pcm)), mimeType: 'audio/pcm;rate=16000' } } }));
+  };
+  rafId = requestAnimationFrame(vizLoop);
+}
+
+function stopAudio() {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  if (processor) { processor.disconnect(); processor = null; }
+  if (micStream) { micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
+  if (audioCtx) { audioCtx.close().catch(()=>{}); audioCtx = null; }
+  analyser = null; analyserData = null; nextPlayTime = 0;
+  const vc = document.getElementById('vizCanvas');
+  vc.getContext('2d').clearRect(0,0,46,46);
+  document.getElementById('micFill').style.width = '0%';
+}
+
+function scheduleAudioChunk(b64) {
+  if (!audioCtx) return;
+  const f32 = b64ToPCM(b64);
+  const buf = audioCtx.createBuffer(1, f32.length, 24000);
+  buf.getChannelData(0).set(f32);
+  const s = audioCtx.createBufferSource();
+  s.buffer = buf; s.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  if (nextPlayTime < now) nextPlayTime = now;
+  s.start(nextPlayTime);
+  nextPlayTime += buf.duration;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// VISUALIZER
+// ═══════════════════════════════════════════════════════════════════
+function vizLoop() {
+  rafId = requestAnimationFrame(vizLoop);
+  const vc = document.getElementById('vizCanvas');
+  const ctx = vc.getContext('2d');
+  ctx.clearRect(0,0,46,46);
+
+  if (!analyser || !analyserData) return;
+  analyser.getByteFrequencyData(analyserData);
+  let sum = 0;
+  for (let i=0;i<analyserData.length;i++) sum+=analyserData[i];
+  const avg = sum/analyserData.length;
+  document.getElementById('micFill').style.width = Math.min(100, avg*1.5)+'%';
+
+  if (voiceState !== 'ready' && voiceState !== 'speaking') return;
+
+  const cx=23, cy=23, n=24, inner=14;
+  for (let i=0;i<n;i++) {
+    const idx = Math.floor((i/n)*analyserData.length);
+    let val;
+    if (voiceState === 'speaking') {
+      val = 0.3 + 0.4*Math.abs(Math.sin(Date.now()*0.003+i*0.6))+0.2*Math.abs(Math.sin(Date.now()*0.007+i*1.3));
+      val = Math.min(1,val);
+    } else { val = analyserData[idx]/255; }
+    const barH = val*10+2;
+    const angle = (Math.PI*2/n)*i - Math.PI/2;
+    const x1 = cx+Math.cos(angle)*inner, y1 = cy+Math.sin(angle)*inner;
+    const x2 = cx+Math.cos(angle)*(inner+barH), y2 = cy+Math.sin(angle)*(inner+barH);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+    const col = voiceState==='speaking' ? `rgba(232,160,48,` : `rgba(200,80,80,`;
+    ctx.strokeStyle = col+(0.4+val*0.6)+')';
+    ctx.lineWidth = 1.5; ctx.lineCap = 'round'; ctx.stroke();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AUDIO UTILS
+// ═══════════════════════════════════════════════════════════════════
+function downsample(buf, from, to) {
+  if (from===to) return buf;
+  const r=from/to, len=Math.round(buf.length/r), out=new Float32Array(len);
+  for (let i=0;i<len;i++) out[i]=buf[Math.min(buf.length-1,Math.round(i*r))];
+  return out;
+}
+function floatToInt16(f32) {
+  const i16=new Int16Array(f32.length);
+  for (let i=0;i<f32.length;i++) { const s=Math.max(-1,Math.min(1,f32[i])); i16[i]=s<0?s*0x8000:s*0x7FFF; }
+  return i16;
+}
+function int16ToB64(i16) {
+  const bytes=new Uint8Array(i16.buffer); let bin='';
+  for (let i=0;i<bytes.length;i+=8192) bin+=String.fromCharCode(...bytes.subarray(i,Math.min(i+8192,bytes.length)));
+  return btoa(bin);
+}
+function b64ToPCM(b64) {
+  const bin=atob(b64), bytes=new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  const i16=new Int16Array(bytes.buffer), f32=new Float32Array(i16.length);
+  for (let i=0;i<i16.length;i++) f32[i]=i16[i]/32768.0;
+  return f32;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GAME EVENTS
+// ═══════════════════════════════════════════════════════════════════
+function showDeath() {
+  const o = document.getElementById('resultOverlay');
+  document.getElementById('resultTitle').textContent = 'YOU HAVE FALLEN';
+  document.getElementById('resultTitle').className = 'result-title';
+  document.getElementById('resultSub').textContent = 'The Hollow Keep claims another soul.';
+  o.classList.add('show');
+  disconnect();
+}
+function showVictory() {
+  const o = document.getElementById('resultOverlay');
+  document.getElementById('resultTitle').textContent = 'THE KING IS SLAIN';
+  document.getElementById('resultTitle').className = 'result-title victory';
+  document.getElementById('resultSub').textContent = 'Light breaks upon the cursed keep at last.';
+  o.classList.add('show');
+}
+function restartGame() {
+  gameState = { hp:20, maxHp:20, room:'Entrance Hall', inventory:['Rusty Dagger','Torch'], turn:0, roomsVisited: new Set(['Entrance Hall']) };
+  refreshHP();
+  refreshMap();
+  refreshInventory();
+  updateSceneArt();
+  document.getElementById('roomSelect').value = 'Entrance Hall';
+  document.getElementById('locationName').textContent = 'Entrance Hall';
+  document.getElementById('logEntries').innerHTML = '';
+  updateNarrative('Enter the keep. Speak to the Game Master.');
+  document.getElementById('narrativeHint').textContent = 'Awaiting connection...';
+  document.getElementById('resultOverlay').classList.remove('show');
+  disconnect();
+}
+function orbClick() {
+  if (voiceState === 'idle' || voiceState === 'error') toggleConnect();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+function enterGame() {
+  document.getElementById('introOverlay').classList.add('hidden');
+  setTimeout(()=>{ document.getElementById('introOverlay').style.display='none'; }, 800);
+}
+
+refreshMap();
+refreshHP();
+refreshInventory();
+updateSceneArt();
+
+// Auto-detect file:// origin and show server instructions
+if (location.protocol === 'file:') {
+  document.getElementById('fileWarn').style.display = 'flex';
+}
+
+// D key toggles debug panel
+document.addEventListener('keydown', e => {
+  if (e.key === 'd' || e.key === 'D') {
+    const p = document.getElementById('debugPanel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  }
+});
+
+// Auto-show debug panel so user can see what's happening
+document.getElementById('debugPanel').style.display = 'block';
+dbg('Game loaded. Press D to hide/show this panel.');
+</script>
+</body>
+</html>
